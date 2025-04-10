@@ -1,36 +1,80 @@
-version: "4.23.0"
+version: '3.8'
+
 services:
-  spring-el-sol-image:
-    image: el-sol
-    container_name: el-sol-container
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env
+  app:
+    build: .
     ports:
-      - "8080:8080"
-    networks:
-      - el-sol-network
+      - 8080:8080
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SECURITY_JWT_KEY_PRIVATE: ${SECURITY_JWT_KEY_PRIVATE}
+      SECURITY_USER_NAME: ${SECURITY_USER_NAME}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD}
     depends_on:
       - mysql
+    restart: on-failure
+    command: ["./wait-for.sh", "mysql:3306", "--", "java", "-jar", "/app_el_sol.jar"]
+    networks:
+      - my-network
 
   mysql:
-    image: mysql
-    container_name: mysql_database
-    environment:
-      MYSQL_ROOT_PASSWORD:
-      MYSQL_DATABASE: el_sol
-      MYSQL_USER: dracukeo
-      MYSQL_PASSWORD: 21312
+    image: mysql:8.0
     ports:
-      - "3307:3306"
-    networks:
-      - el-sol-network
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${SPRING_DATASOURCE_USERNAME}
+      MYSQL_DATABASE: ${TABLE_DATABASE}
+      TZ: UTC
     volumes:
-      - mysql-volume:/var/lib/mysql
+      - mysql-data:/var/lib/mysql
+    networks:
+      - my-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}" ]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - my-network
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - 3000:3000
+    environment:
+      - GF_SECURITY_ADMIN_USER:admin
+      - GF_SECURITY_ADMIN_PASSWORD:admin
+      - GF_SMTP_ENABLED=true
+      - GF_SMTP_HOST=smtp.gmail.com:587
+      - GF_SMTP_USER=eduardor1901g@gmail.com
+      - GF_SMTP_PASSWORD=jpeh cbdt aqpm lmww
+      - GF_SMTP_FROM_ADDRESS=eduardor1901g@gmail.com
+      - GF_SMTP_FROM_NAME="Grafana Alerts"
+      - GF_SMTP_SKIP_VERIFY=true
+      - GF_SMTP_REQUIRE_TLS=true
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - my-network
+
+volumes:
+  mysql-data:
+  grafana-data:
 
 networks:
-  el-sol-network:
-volumes:
-  mysql-volume:
+  my-network:
+    driver: bridge

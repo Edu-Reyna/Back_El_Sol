@@ -65,4 +65,21 @@ public class OrderController {
         return new ResponseEntity<>(this.orderService.getOrdersByMonth(), HttpStatus.OK);
     }
 
+    @GetMapping("/test")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public String test() {
+        try {
+            boolean condition = true;
+            while (condition) {
+                Runnable r = () -> {
+                    while (true) {
+
+                    }
+                };
+                new Thread(r).start();
+                Thread.sleep(5000);
+            }
+        }catch (Exception e){}
+        return "Hello World";
+    }
 }

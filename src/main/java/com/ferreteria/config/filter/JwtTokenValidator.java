@@ -32,7 +32,7 @@ public class JwtTokenValidator extends OncePerRequestFilter {
                                     @NotNull HttpServletResponse response,
                                     @NotNull FilterChain filterChain) throws ServletException, IOException {
 
-        String jwtToken  = request.getHeader(HttpHeaders.AUTHORIZATION);
+            String jwtToken  = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (jwtToken != null) {
 
